@@ -2,14 +2,13 @@ import EventEmitter2 from "eventemitter2";
 import { Indexer } from "./indexer.js";
 import { WALLET_VERIFIER_ADDRESS } from "../env.js";
 import { Client } from "../client.js";
-import { logger } from "../log.js";
 import { Verify } from "./verify.js";
 
 const emitter = new EventEmitter2();
 const indexer = new Indexer(WALLET_VERIFIER_ADDRESS as `0x${string}`, Client.getInstance(), emitter);
 const verifier = new Verify(Client.getInstance(), emitter);
 
-export const handler = async () => {
+export const challenge = async () => {
     // Start the indexer submit events
     await indexer.handleInterval();
 
@@ -17,5 +16,3 @@ export const handler = async () => {
     await verifier.handleEvent();
 
 };
-
-handler().catch((e) => logger.error(`Error in handler: ${e}`));
