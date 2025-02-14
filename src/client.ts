@@ -3,12 +3,18 @@ import {
     createWalletClient,
     http,
     nonceManager,
+    PrivateKeyAccount,
     PublicClient,
     WalletClient,
 } from "viem";
 import { base, optimism, optimismSepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
-import { NETWORK, PRIVATE_KEY, RPC_URL, WALLET_VERIFIER_ADDRESS } from "./env.js";
+import {
+    NETWORK,
+    PRIVATE_KEY,
+    RPC_URL,
+    WALLET_VERIFIER_ADDRESS,
+} from "./env.js";
 import { WalletOptimisticVerifierABI } from "./abi/wallet.optimistic.verifier.js";
 import { logger } from "./log.js";
 
@@ -16,6 +22,7 @@ export class Client {
     private static instance: Client;
     public publicClient: PublicClient;
     private walletClient: WalletClient;
+    private account: PrivateKeyAccount;
 
     private constructor() {
         let chain;
@@ -30,6 +37,11 @@ export class Client {
                 chain = optimismSepolia;
         }
         this.publicClient = createPublicClient({
+            batch: {
+                multicall: {
+                    wait: 100,
+                },
+            },
             chain: chain,
             transport: http(RPC_URL),
         }) as PublicClient;
@@ -38,6 +50,10 @@ export class Client {
             chain: chain,
             transport: http(RPC_URL),
         }) as WalletClient;
+
+        this.account = privateKeyToAccount(PRIVATE_KEY as `0x${string}`, {
+            nonceManager,
+        });
     }
 
     static getInstance() {
@@ -56,19 +72,14 @@ export class Client {
         signature: `0x${string}`,
     ) {
         try {
-            const result  = await this.publicClient.readContract({
+            const result = await this.publicClient.readContract({
                 address: WALLET_VERIFIER_ADDRESS as `0x${string}`,
                 abi: WalletOptimisticVerifierABI,
                 functionName: "tryChallengeAdd",
-                args: [
-                    fid,
-                    verifyAddress,
-                    publicKey,
-                    signature,
-                ],
+                args: [fid, verifyAddress, publicKey, signature],
             });
 
-            logger.info(`tryChallengeAdd: ${result}`);
+            // logger.info(`tryChallengeAdd: ${result}`);
             return result;
         } catch (err) {
             logger.error(`tryChallengeAdd error: ${err}`);
@@ -89,15 +100,10 @@ export class Client {
                 address: WALLET_VERIFIER_ADDRESS as `0x${string}`,
                 abi: WalletOptimisticVerifierABI,
                 functionName: "tryChallengeRemove",
-                args: [
-                    fid,
-                    verifyAddress,
-                    publicKey,
-                    signature,
-                ],
+                args: [fid, verifyAddress, publicKey, signature],
             });
 
-            logger.info(`tryChallengeRemove: ${result}`);
+            // logger.info(`tryChallengeRemove: ${result}`);
             return result;
         } catch (err) {
             logger.error(`tryChallengeRemove error: ${err}`);
@@ -115,13 +121,8 @@ export class Client {
             address: WALLET_VERIFIER_ADDRESS as `0x${string}`,
             abi: WalletOptimisticVerifierABI,
             functionName: "challengeAdd",
-            args: [
-                fid,
-                verifyAddress,
-                publicKey,
-                signature,
-            ],
-            account: privateKeyToAccount(PRIVATE_KEY as `0x${string}`, { nonceManager }),
+            args: [fid, verifyAddress, publicKey, signature],
+            account: this.account,
         });
 
         const txHash = await this.walletClient.writeContract(request);
@@ -140,13 +141,8 @@ export class Client {
             address: WALLET_VERIFIER_ADDRESS as `0x${string}`,
             abi: WalletOptimisticVerifierABI,
             functionName: "challengeRemove",
-            args: [
-                fid,
-                verifyAddress,
-                publicKey,
-                signature,
-            ],
-            account: privateKeyToAccount(PRIVATE_KEY as `0x${string}`, { nonceManager }),
+            args: [fid, verifyAddress, publicKey, signature],
+            account: this.account,
         });
 
         const txHash = await this.walletClient.writeContract(request);

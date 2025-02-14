@@ -5,21 +5,13 @@ import { EVENT_SUBMIT_VERIFICATION } from "../constant.js";
 import { logger } from "../log.js";
 
 export class Verify {
-    constructor(
-        private client: Client,
-        private emitter: EventEmitter2,
-    ) {
-    }
-
-    async handleEvent() {
-        this.emitter.on(EVENT_SUBMIT_VERIFICATION, async (data) => {
-            await this.processVerification(data);
-        });
-    }
+    constructor(private client: Client) {}
 
     async processVerification(data: any) {
         try {
-            logger.info(`Processing verification: fid ${data.fid} - type: ${data.messageType}`);
+            logger.info(
+                `Processing verification: fid ${data.fid} - type: ${data.messageType}`,
+            );
             switch (data.messageType) {
                 case MessageType.VERIFICATION_ADD_ETH_ADDRESS: {
                     const verified = await this.client.verifyAdd(

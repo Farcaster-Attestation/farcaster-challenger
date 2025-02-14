@@ -3,11 +3,12 @@
     "version": "1.0.0",
     "description": "A challenger for Farcaster",
     "main": "main.js",
+    "type": "module",
     "scripts": {
         "test": "echo \\\"Error: no src/test specified\\\" && exit 1",
         "build": "rm -rf build && tsc --build",
         "postbuild": "cp package.json build/package.json && cd build && npm install --only=production --force",
-        "start": "node build/index.js"
+        "start": "node build/hosted.js"
     },
     "keywords": [],
     "author": "Johny Phan",

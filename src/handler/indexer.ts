@@ -1,17 +1,16 @@
-import { EventEmitter2 } from "eventemitter2";
 import { Client } from "../client.js";
 import { WalletOptimisticVerifierABI } from "../abi/wallet.optimistic.verifier.js";
 import { EVENT_SUBMIT_VERIFICATION } from "../constant.js";
 import { MAX_BEHIND_BLOCKS } from "../env.js";
 import { logger } from "../log.js";
-
+import { Verify } from "./verify.js";
 
 export class Indexer {
     private syncHead: bigint;
     constructor(
         private readonly contract: `0x${string}`,
         private readonly client: Client,
-        private readonly emitter: EventEmitter2,
+        private readonly verifier: Verify,
     ) {
         this.syncHead = 0n;
     }
@@ -22,12 +21,14 @@ export class Indexer {
             } catch (e) {
                 logger.error(`Error indexing: ${e}`);
             }
-        }, 4000);
+        }, 30000);
     }
 
     async index() {
         const lastHead = await this.getLastHead();
-        logger.info(`Last head: ${lastHead.number} Sync head: ${this.syncHead}`);
+        logger.info(
+            `Last head: ${lastHead.number} Sync head: ${this.syncHead}`,
+        );
         if (this.syncHead === 0n) {
             this.syncHead = lastHead.number - BigInt(MAX_BEHIND_BLOCKS);
         }
@@ -65,8 +66,8 @@ export class Indexer {
         }));
 
         submitEvents.forEach((event) => {
-            this.emitter.emit(EVENT_SUBMIT_VERIFICATION, event);
-        })
+            this.verifier.processVerification(event);
+        });
 
         return submitEvents;
     }
@@ -74,5 +75,4 @@ export class Indexer {
     async getLastHead() {
         return this.client.publicClient.getBlock();
     }
-
 }
